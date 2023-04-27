@@ -40,7 +40,7 @@ attach_camera_device := class(creative_device):
 
     # Variables ==============================================================================
     var MovementDirection : direction = direction.Halted # The direction the player is moving (As in pressing W A S D on their keyboard)
-    var MoveDuration : float = 0.5 # The duration of one MoveTo without being interrupted
+    var MoveDuration : float = 1.0 # The duration of one MoveTo without being interrupted
     var Sprinting : logic = false
     # End of Variables =======================================================================
 
