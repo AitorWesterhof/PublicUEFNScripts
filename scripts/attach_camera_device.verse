@@ -19,6 +19,7 @@ attach_camera_device := class(creative_device):
 
     # The prop the camera should attach to.
     @editable   Prop : creative_prop = creative_prop{}
+    @editable   UseMeanSpeed : logic = false
 
     # Constants ==============================================================================
         StandardZ : float = 0.0 # Z-position of the player (This version ignores the Z-position since this is another challenge)
@@ -41,6 +42,7 @@ attach_camera_device := class(creative_device):
     # Variables ==============================================================================
     var MovementDirection : direction = direction.Halted # The direction the player is moving (As in pressing W A S D on their keyboard)
     var MoveDuration : float = 1.0 # The duration of one MoveTo without being interrupted
+    var MeanSpeed : float = 0.0
     var Sprinting : logic = false
     # End of Variables =======================================================================
 
@@ -50,11 +52,12 @@ attach_camera_device := class(creative_device):
         AllPlayers := GetPlayspace().GetPlayers()
         if (Agent := AllPlayers[0], Player := player[Agent], FortCharacter := Player.GetFortCharacter[]):
             # Initialize position
-            if (Prop.TeleportTo[vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}, FortCharacter.GetTransform().Rotation]) {}
-            spawn{ Mover(FortCharacter) }                               # Start the Mover
-            spawn{ Interruptor() }                                      # Start the Interruptor
-            spawn{ PlayerMovementTracker(FortCharacter) }               # Start the Player Movement Tracker
-            FortCharacter.SprintedEvent().Subscribe(UpdateSprinting)    # Track if the player is sprinting
+            if (OnlyYawRotation : rotation = MakeRotationFromYawPitchRollDegrees(FortCharacter.GetTransform().Rotation.GetYawPitchRollDegrees()[0], 0.0, 0.0)):
+                if (Prop.TeleportTo[vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}, OnlyYawRotation]) {}
+                spawn{ Mover(FortCharacter) }                               # Start the Mover
+                spawn{ Interruptor() }                                      # Start the Interruptor
+                spawn{ PlayerMovementTracker(FortCharacter) }               # Start the Player Movement Tracker
+                FortCharacter.SprintedEvent().Subscribe(UpdateSprinting)    # Track if the player is sprinting
     # End of OnBegin =========================================================================
 
     # The Prop Mover =========================================================================
@@ -65,18 +68,19 @@ attach_camera_device := class(creative_device):
             Sleep(0.1) # If we use Sleep(0.0) we'll get a glitchy movement
             PredictedLocation : vector3 = PredictLocation(FortCharacter) # Predict the next location of the player
 
-            if (MovementDirection = direction.Halted): # Player is not moving
-                Prop.MoveTo(vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}, FortCharacter.GetTransform().Rotation, 0.2)
-            else if (MovementDirection = direction.Forward or MovementDirection = direction.Backward): # Player is moving forwards or backwards
-                if (PreviousMovementDirection <> MovementDirection): # Player changed movement direction
-                    Sleep(0.4) # Wait for player to get to full speed
-                Prop.MoveTo(PredictedLocation, FortCharacter.GetTransform().Rotation, MoveDuration)
-            else: # Player is moving left or right
-                if (PreviousMovementDirection <> MovementDirection):  # Player changed movement direction
-                    Sleep(0.1) # Wait for player to get to full speed
-                Prop.MoveTo(PredictedLocation, FortCharacter.GetTransform().Rotation, MoveDuration)
+            if (OnlyYawRotation : rotation = MakeRotationFromYawPitchRollDegrees(FortCharacter.GetTransform().Rotation.GetYawPitchRollDegrees()[0], 0.0, 0.0)):
+                if (MovementDirection = direction.Halted): # Player is not moving
+                    Prop.MoveTo(vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}, OnlyYawRotation, 0.2)
+                else if (MovementDirection = direction.Forward or MovementDirection = direction.Backward): # Player is moving forwards or backwards
+                    if (PreviousMovementDirection <> MovementDirection): # Player changed movement direction
+                        Sleep(0.4) # Wait for player to get to full speed
+                    Prop.MoveTo(PredictedLocation, OnlyYawRotation, MoveDuration)
+                else: # Player is moving left or right
+                    if (PreviousMovementDirection <> MovementDirection):  # Player changed movement direction
+                        Sleep(0.1) # Wait for player to get to full speed
+                    Prop.MoveTo(PredictedLocation, OnlyYawRotation, MoveDuration)
 
-            set PreviousMovementDirection = MovementDirection
+                set PreviousMovementDirection = MovementDirection
     # =======================================================================================
 
     # Interrupts The Mover When Needed ======================================================
@@ -133,6 +137,7 @@ attach_camera_device := class(creative_device):
             # Update variables
             set PreviousElapsedTime = GetSimulationElapsedTime()
             set PreviousLocation = vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}
+            set MeanSpeed = CurrentMean
     # =======================================================================================
 
     # Update Sprinting Variable =============================================================
@@ -142,17 +147,20 @@ attach_camera_device := class(creative_device):
 
     # Get The Hardcoded Velocity ============================================================
     GetDirectionVelocity(Direction : direction) : float =
-        case(Direction):
-            direction.Forward =>
-                return ForwardSpeed
-            direction.Left =>
-                return LeftSpeed
-            direction.Right =>
-                return RightSpeed
-            direction.Backward =>
-                return BackwardSpeed
-            direction.Halted =>
-                return HaltSpeed
+        if (UseMeanSpeed?):
+            return MeanSpeed
+        else:
+            case(Direction):
+                direction.Forward =>
+                    return ForwardSpeed
+                direction.Left =>
+                    return LeftSpeed
+                direction.Right =>
+                    return RightSpeed
+                direction.Backward =>
+                    return BackwardSpeed
+                direction.Halted =>
+                    return HaltSpeed
     # =======================================================================================
 
     # Get The Hardcoded Movement Angle ======================================================
