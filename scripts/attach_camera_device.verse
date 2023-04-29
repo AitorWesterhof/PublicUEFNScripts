@@ -72,11 +72,11 @@ attach_camera_device := class(creative_device):
                 if (MovementDirection = direction.Halted): # Player is not moving
                     Prop.MoveTo(vector3{ X := FortCharacter.GetTransform().Translation.X, Y := FortCharacter.GetTransform().Translation.Y, Z := StandardZ}, OnlyYawRotation, 0.2)
                 else if (MovementDirection = direction.Forward or MovementDirection = direction.Backward): # Player is moving forwards or backwards
-                    if (PreviousMovementDirection <> MovementDirection): # Player changed movement direction
+                    if (PreviousMovementDirection <> MovementDirection, not UseMeanSpeed?): # Player changed movement direction
                         Sleep(0.4) # Wait for player to get to full speed
                     Prop.MoveTo(PredictedLocation, OnlyYawRotation, MoveDuration)
                 else: # Player is moving left or right
-                    if (PreviousMovementDirection <> MovementDirection):  # Player changed movement direction
+                    if (PreviousMovementDirection <> MovementDirection, not UseMeanSpeed?):  # Player changed movement direction
                         Sleep(0.1) # Wait for player to get to full speed
                     Prop.MoveTo(PredictedLocation, OnlyYawRotation, MoveDuration)
 
