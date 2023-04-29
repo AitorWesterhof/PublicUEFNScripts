@@ -19,8 +19,9 @@ attach_camera_device := class(creative_device):
 
     # The prop the camera should attach to.
     @editable   Prop : creative_prop = creative_prop{}
-    @editable   UseMeanSpeed : logic = false
-
+    @editable   UseMeanSpeed : logic = false # Use the mean speed instead of hardcoded walking speeds
+    @editable   MoveDuration : float = 1.0 # The duration of one MoveTo without being interrupted
+    
     # Constants ==============================================================================
         StandardZ : float = 0.0 # Z-position of the player (This version ignores the Z-position since this is another challenge)
 
@@ -41,7 +42,6 @@ attach_camera_device := class(creative_device):
 
     # Variables ==============================================================================
     var MovementDirection : direction = direction.Halted # The direction the player is moving (As in pressing W A S D on their keyboard)
-    var MoveDuration : float = 1.0 # The duration of one MoveTo without being interrupted
     var MeanSpeed : float = 0.0
     var Sprinting : logic = false
     # End of Variables =======================================================================
